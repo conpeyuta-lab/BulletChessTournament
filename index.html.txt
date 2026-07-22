@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bullet Chess Tournament</title>
+
+  <!-- Gothic Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+
+  <!-- Chessground Styles & Piece Spritesheet -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@8.0.0/assets/chessground.base.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@8.0.0/assets/chessground.cburnett.css">
+  
+  <!-- Custom Gothic Style -->
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <div class="overlay"></div>
+
+  <div class="app-container">
+    <header class="app-header">
+      <h1 class="bloody-title">Bullet Chess Tournament</h1>
+    </header>
+
+    <!-- Controls & Game Mode Toggle -->
+    <div class="controls-panel">
+      <div class="controls-left">
+        <label class="toggle-container">
+          <input type="checkbox" id="ai-toggle">
+          <span class="toggle-slider"></span>
+          <span class="toggle-label" id="mode-label">Mode: 2 Players</span>
+        </label>
+
+        <!-- Difficulty Selector -->
+        <select id="difficulty-select" class="gothic-select" style="display: none;">
+          <option value="1">Easy</option>
+          <option value="2" selected>Medium</option>
+          <option value="3">Hard</option>
+        </select>
+      </div>
+
+      <button id="reset-btn" class="gothic-btn small-btn">⚔️ Reset</button>
+    </div>
+
+    <main class="game-area">
+      <!-- Black Clock -->
+      <div class="clock-container black-clock" id="black-clock">
+        <span class="player-label" id="black-label">BLACK</span>
+        <span class="time-display" id="black-time">01:00</span>
+      </div>
+
+      <!-- Chessboard -->
+      <div id="board"></div>
+
+      <!-- White Clock -->
+      <div class="clock-container white-clock active" id="white-clock">
+        <span class="player-label">WHITE</span>
+        <span class="time-display" id="white-time">01:00</span>
+      </div>
+    </main>
+
+    <!-- Signature & Footer -->
+    <footer class="app-footer">
+      <p class="signature">Created by <span>Mohamed Boudili</span></p>
+      <div class="social-links">
+        <a href="https://youtube.com/@Conpeyuta" target="_blank" class="gothic-btn youtube">
+          <span class="btn-icon">⚔️</span> YouTube
+        </a>
+        <a href="mailto:Conpeyuta@gmail.com" class="gothic-btn contact">
+          <span class="btn-icon">📜</span> Contact
+        </a>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="./script.js"></script>
+</body>
+</html>
