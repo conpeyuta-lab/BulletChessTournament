@@ -218,13 +218,13 @@ function updateMoveLog() {
   moveLogEl.scrollTop = moveLogEl.scrollHeight;
 }
 
-// Game Over Modal Handling
+// Game Over Modal Handling (Fixed syntax for chess.js v1.0.0-beta.6)
 function handleGameOver() {
   clearInterval(timerInterval);
-  if (chess.in_checkmate()) {
+  if (chess.isCheckmate()) {
     const winner = chess.turn() === 'w' ? 'BLACK' : 'WHITE';
     showGameOverModal(`${winner} WINS`, 'By Checkmate');
-  } else if (chess.in_draw()) {
+  } else if (chess.isDraw()) {
     showGameOverModal('DRAW', 'By Stalemate / Insufficient Material');
   }
 }
