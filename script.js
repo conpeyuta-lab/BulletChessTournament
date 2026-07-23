@@ -1,430 +1,170 @@
 import { Chessground } from 'https://cdn.jsdelivr.net/npm/chessground@8.0.0/+esm';
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.0.0-beta.6/+esm';
 
+// EMBEDDED CONSOLE SIGNATURE
+console.log(
+  `%c ⚔️ GOTHIC BULLET CHESS ⚔️ \n%c Built & Designed by Mohamed Boudili \n Official YouTube: https://www.youtube.com/@Conpeyuta \n Copyright © 2026. All rights reserved.`,
+  'color: #ff1a1a; font-size: 16px; font-weight: bold; background: #111; padding: 6px;',
+  'color: #d4af37; font-size: 12px; background: #000; padding: 4px;'
+);
+
 // DOM Elements
 const boardElement = document.getElementById('board');
-const whiteTimeEl = document.getElementById('white-time');
-const blackTimeEl = document.getElementById('black-time');
-const whiteClockEl = document.getElementById('white-clock');
-const blackClockEl = document.getElementById('black-clock');
-const whiteLabelEl = document.getElementById('white-label');
-const blackLabelEl = document.getElementById('black-label');
-const whiteCapturedEl = document.getElementById('white-captured');
-const blackCapturedEl = document.getElementById('black-captured');
+const coinCountEl = document.getElementById('coin-count');
+const musicBtn = document.getElementById('music-btn');
+const jazzAudio = document.getElementById('jazz-music');
 const moveLogEl = document.getElementById('move-log');
+const resetBtn = document.getElementById('reset-btn');
+const flipBtn = document.getElementById('flip-btn');
 
-const aiToggleEl = document.getElementById('ai-toggle');
-const modeLabelEl = document.getElementById('mode-label');
+// Creator Modal Elements
+const aboutCreatorBtn = document.getElementById('about-creator-btn');
+const creatorModal = document.getElementById('creator-modal');
+const closeCreatorBtn = document.getElementById('close-creator-btn');
+const subAndClaimBtn = document.getElementById('sub-and-claim-btn');
+
+// Arena & Mode Elements
+const arenaPlayBtn = document.getElementById('arena-play-btn');
+const menuModal = document.getElementById('menu-modal');
+const closeMenuBtn = document.getElementById('close-menu-btn');
+const modeLocalBtn = document.getElementById('mode-local-btn');
+const modeBotBtn = document.getElementById('mode-bot-btn');
+const botSettings = document.getElementById('bot-settings');
 const difficultySelect = document.getElementById('difficulty-select');
-const resetBtnEl = document.getElementById('reset-btn');
-const flipBtnEl = document.getElementById('flip-btn');
 
-const bgMusicEl = document.getElementById('bg-music');
-const musicBtnEl = document.getElementById('music-btn');
+// Tournament Elements
+const tournamentBtn = document.getElementById('tournament-btn');
+const bracketView = document.getElementById('bracket-view');
+const startTourneyMatchBtn = document.getElementById('start-tourney-match-btn');
+const m1Slot = document.getElementById('m1');
 
-// Modal Elements
-const modalOverlay = document.getElementById('game-over-modal');
-const modalTitle = document.getElementById('modal-title');
-const modalReason = document.getElementById('modal-reason');
-const modalRestartBtn = document.getElementById('modal-restart-btn');
-const modalCloseBtn = document.getElementById('modal-close-btn');
-
+// Game State Variables
+let currentMode = 'local';
+let tourneyRound = 1;
+let userCoins = parseInt(localStorage.getItem('blood_gold_coins') || '0', 10);
+let subRewardClaimed = localStorage.getItem('sub_reward_claimed') === 'true';
 let isMusicPlaying = false;
-let boardOrientation = 'white';
 
-// Web Audio API Synthesizer
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+coinCountEl.textContent = userCoins;
 
-function playAudioEffect(type) {
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  const now = audioCtx.currentTime;
-
-  if (type === 'capture') {
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(300, now);
-    osc.frequency.exponentialRampToValueAtTime(80, now + 0.08);
-    gain.gain.setValueAtTime(0.4, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
-    osc.start(now);
-    osc.stop(now + 0.08);
-  } else {
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(450, now);
-    osc.frequency.exponentialRampToValueAtTime(150, now + 0.05);
-    gain.gain.setValueAtTime(0.3, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
-    osc.start(now);
-    osc.stop(now + 0.05);
-  }
+if (subRewardClaimed) {
+  subAndClaimBtn.textContent = '✓ Subscribed (+10 Coins Claimed)';
+  subAndClaimBtn.disabled = true;
+  subAndClaimBtn.style.opacity = '0.6';
 }
 
 let chess = new Chess();
 let cg = null;
 
-// Game State
-let isVsAI = false;
-let whiteSeconds = 60;
-let blackSeconds = 60;
-let timerInterval = null;
-let gameStarted = false;
+// CORS-SAFE STOCKFISH WORKER INITIALIZATION (JSFiddle/Web Compatible)
+let stockfish = null;
 
-// Piece Evaluation & Unicode Icons
-const weights = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
-const pieceIcons = {
-  p: '♟', n: '♞', b: '♝', r: '♜', q: '♛',
-  P: '♙', N: '♘', B: '♗', R: '♖', Q: '♕'
-};
+async function initStockfishEngine() {
+  try {
+    const response = await fetch('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');
+    const scriptText = await response.text();
+    const blob = new Blob([scriptText], { type: 'application/javascript' });
+    const workerUrl = URL.createObjectURL(blob);
 
-const pawnPst = [
-  [0,  0,  0,  0,  0,  0,  0,  0],
-  [50, 50, 50, 50, 50, 50, 50, 50],
-  [10, 10, 20, 30, 30, 20, 10, 10],
-  [ 5,  5, 10, 27, 27, 10,  5,  5],
-  [ 0,  0,  0, 25, 25,  0,  0,  0],
-  [ 5, -5,-10,  0,  0,-10, -5,  5],
-  [ 5, 10, 10,-20,-20, 10, 10,  5],
-  [ 0,  0,  0,  0,  0,  0,  0,  0]
-];
+    stockfish = new Worker(workerUrl);
+    stockfish.postMessage('uci');
+    stockfish.postMessage('isready');
 
-function formatTime(sec) {
-  const mins = Math.floor(sec / 60);
-  const secs = sec % 60;
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-}
-
-function updateClockDisplay() {
-  whiteTimeEl.textContent = formatTime(whiteSeconds);
-  blackTimeEl.textContent = formatTime(blackSeconds);
-}
-
-function startClock() {
-  if (timerInterval) clearInterval(timerInterval);
-
-  timerInterval = setInterval(() => {
-    if (chess.isGameOver()) {
-      clearInterval(timerInterval);
-      handleGameOver();
-      return;
-    }
-
-    const currentTurn = chess.turn();
-    if (currentTurn === 'w') {
-      whiteSeconds--;
-      if (whiteSeconds <= 0) {
-        whiteSeconds = 0;
-        flagPlayer('white');
-      }
-    } else {
-      blackSeconds--;
-      if (blackSeconds <= 0) {
-        blackSeconds = 0;
-        flagPlayer('black');
-      }
-    }
-    updateClockDisplay();
-  }, 1000);
-}
-
-function flagPlayer(color) {
-  clearInterval(timerInterval);
-  if (color === 'white') {
-    whiteClockEl.classList.add('flagged');
-    showGameOverModal('BLACK WINS', 'White ran out of time!');
-  } else {
-    blackClockEl.classList.add('flagged');
-    showGameOverModal('WHITE WINS', 'Black ran out of time!');
-  }
-  cg.set({ movable: { color: null } });
-}
-
-function switchActiveClock(turn) {
-  if (turn === 'w') {
-    whiteClockEl.classList.add('active');
-    blackClockEl.classList.remove('active');
-  } else {
-    blackClockEl.classList.add('active');
-    whiteClockEl.classList.remove('active');
-  }
-}
-
-// Captured Pieces & Material Counter Logic
-function updateCapturedDisplay() {
-  const history = chess.history({ verbose: true });
-  const capturedByWhite = [];
-  const capturedByBlack = [];
-
-  let whiteScore = 0;
-  let blackScore = 0;
-
-  history.forEach(m => {
-    if (m.captured) {
-      const p = m.captured;
-      const val = weights[p] || 0;
-      if (m.color === 'w') {
-        capturedByWhite.push(p);
-        whiteScore += val;
-      } else {
-        capturedByBlack.push(p);
-        blackScore += val;
-      }
-    }
-  });
-
-  // Render White's Captures
-  const wList = whiteCapturedEl.querySelector('.pieces-list');
-  const wDiff = whiteCapturedEl.querySelector('.score-diff');
-  wList.textContent = capturedByWhite.map(p => pieceIcons[p.toUpperCase()] || p).join('');
-  wDiff.textContent = whiteScore > blackScore ? `+${whiteScore - blackScore}` : '';
-
-  // Render Black's Captures
-  const bList = blackCapturedEl.querySelector('.pieces-list');
-  const bDiff = blackCapturedEl.querySelector('.score-diff');
-  bList.textContent = capturedByBlack.map(p => pieceIcons[p] || p).join('');
-  bDiff.textContent = blackScore > whiteScore ? `+${blackScore - whiteScore}` : '';
-}
-
-// Move History Log Render
-function updateMoveLog() {
-  const history = chess.history();
-  moveLogEl.innerHTML = '';
-
-  for (let i = 0; i < history.length; i += 2) {
-    const moveRow = document.createElement('div');
-    moveRow.className = 'move-row';
-
-    const numSpan = document.createElement('span');
-    numSpan.className = 'move-num';
-    numSpan.textContent = `${Math.floor(i / 2) + 1}.`;
-
-    const whiteSpan = document.createElement('span');
-    whiteSpan.className = 'white-move';
-    whiteSpan.textContent = history[i] || '';
-
-    const blackSpan = document.createElement('span');
-    blackSpan.className = 'black-move';
-    blackSpan.textContent = history[i + 1] || '';
-
-    moveRow.appendChild(numSpan);
-    moveRow.appendChild(whiteSpan);
-    moveRow.appendChild(blackSpan);
-    moveLogEl.appendChild(moveRow);
-  }
-
-  moveLogEl.scrollTop = moveLogEl.scrollHeight;
-}
-
-// Game Over Modal Handling (Fixed syntax for chess.js v1.0.0-beta.6)
-function handleGameOver() {
-  clearInterval(timerInterval);
-  if (chess.isCheckmate()) {
-    const winner = chess.turn() === 'w' ? 'BLACK' : 'WHITE';
-    showGameOverModal(`${winner} WINS`, 'By Checkmate');
-  } else if (chess.isDraw()) {
-    showGameOverModal('DRAW', 'By Stalemate / Insufficient Material');
-  }
-}
-
-function showGameOverModal(title, reason) {
-  modalTitle.textContent = title;
-  modalReason.textContent = reason;
-  modalOverlay.classList.remove('hidden');
-}
-
-function hideGameOverModal() {
-  modalOverlay.classList.add('hidden');
-}
-
-function resetGame() {
-  clearInterval(timerInterval);
-  chess = new Chess();
-  whiteSeconds = 60;
-  blackSeconds = 60;
-  gameStarted = false;
-
-  hideGameOverModal();
-  whiteClockEl.classList.remove('flagged');
-  blackClockEl.classList.remove('flagged');
-  switchActiveClock('w');
-  updateClockDisplay();
-  updateCapturedDisplay();
-  updateMoveLog();
-
-  const userColor = boardOrientation === 'white' ? 'white' : 'black';
-
-  cg.set({
-    fen: chess.fen(),
-    orientation: boardOrientation,
-    turnColor: 'white',
-    lastMove: [],
-    movable: {
-      color: userColor,
-      dests: getLegalMoves(chess),
-    },
-  });
-
-  if (isVsAI && boardOrientation === 'black') {
-    setTimeout(makeAIMove, 400);
-  }
-}
-
-// Minimax Bot AI
-function evaluateBoard(board) {
-  let totalEvaluation = 0;
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      const piece = board[r][c];
-      if (piece) {
-        let val = (weights[piece.type] * 10) || 0;
-        if (piece.type === 'p') val += pawnPst[r][c];
-        if (piece.color === 'w') {
-          totalEvaluation -= val;
-        } else {
-          totalEvaluation += val;
+    stockfish.onmessage = function (event) {
+      const line = event.data;
+      if (line.startsWith('bestmove')) {
+        const parts = line.split(' ');
+        const bestMove = parts[1];
+        if (bestMove && bestMove !== '(none)') {
+          executeStockfishMove(bestMove);
         }
       }
-    }
-  }
-  return totalEvaluation;
-}
-
-function minimax(game, depth, alpha, beta, isMaximizing) {
-  if (depth === 0 || game.isGameOver()) {
-    return evaluateBoard(game.board());
-  }
-
-  const moves = game.moves();
-  if (isMaximizing) {
-    let maxEval = -Infinity;
-    for (const move of moves) {
-      game.move(move);
-      const evalVal = minimax(game, depth - 1, alpha, beta, false);
-      game.undo();
-      maxEval = Math.max(maxEval, evalVal);
-      alpha = Math.max(alpha, evalVal);
-      if (beta <= alpha) break;
-    }
-    return maxEval;
-  } else {
-    let minEval = Infinity;
-    for (const move of moves) {
-      game.move(move);
-      const evalVal = minimax(game, depth - 1, alpha, beta, true);
-      game.undo();
-      minEval = Math.min(minEval, evalVal);
-      beta = Math.min(beta, evalVal);
-      if (beta <= alpha) break;
-    }
-    return minEval;
+    };
+    console.log('✅ Stockfish Engine successfully loaded!');
+  } catch (err) {
+    console.error('Failed to initialize Stockfish worker:', err);
   }
 }
 
-function makeAIMove() {
-  if (chess.isGameOver()) return;
+initStockfishEngine();
 
-  const currentTurn = chess.turn();
-  const botColor = boardOrientation === 'white' ? 'b' : 'w';
-  if (currentTurn !== botColor || !isVsAI) return;
-
-  const moves = chess.moves({ verbose: true });
-  if (moves.length === 0) return;
-
-  const depth = parseInt(difficultySelect.value, 10);
-  let bestMove = null;
-  let bestValue = botColor === 'b' ? -Infinity : Infinity;
-
-  moves.sort((a, b) => (b.captured ? 1 : 0) - (a.captured ? 1 : 0));
-
-  for (const move of moves) {
-    chess.move(move);
-    const boardVal = minimax(chess, depth - 1, -Infinity, Infinity, botColor === 'w');
-    chess.undo();
-
-    if (botColor === 'b' && boardVal > bestValue) {
-      bestValue = boardVal;
-      bestMove = move;
-    } else if (botColor === 'w' && boardVal < bestValue) {
-      bestValue = boardVal;
-      bestMove = move;
-    }
-  }
-
-  const chosenMove = bestMove || moves[0];
-
-  setTimeout(() => {
-    if (!isVsAI || chess.turn() !== botColor) return;
-
-    const playedMove = chess.move(chosenMove);
-    playAudioEffect(playedMove.captured ? 'capture' : 'move');
-
-    if (!gameStarted) {
-      gameStarted = true;
-      startClock();
-    }
-
-    const nextTurn = chess.turn() === 'w' ? 'white' : 'black';
-    const userColor = boardOrientation;
-
-    updateCapturedDisplay();
-    updateMoveLog();
-
-    cg.set({
-      fen: chess.fen(),
-      turnColor: nextTurn,
-      lastMove: [chosenMove.from, chosenMove.to],
-      movable: {
-        color: userColor,
-        dests: getLegalMoves(chess),
-      },
-    });
-
-    switchActiveClock(chess.turn());
-    if (chess.isGameOver()) handleGameOver();
-  }, 250);
-}
-
-// Event Listeners
-flipBtnEl.addEventListener('click', () => {
-  boardOrientation = boardOrientation === 'white' ? 'black' : 'white';
-  resetGame();
-});
-
-musicBtnEl.addEventListener('click', () => {
-  if (isMusicPlaying) {
-    bgMusicEl.pause();
-    musicBtnEl.textContent = '🎵 Music: OFF';
-    isMusicPlaying = false;
-  } else {
-    bgMusicEl.play().then(() => {
-      musicBtnEl.textContent = '🎶 Music: ON';
+// Jazz Music Control Trigger
+musicBtn.addEventListener('click', () => {
+  if (!isMusicPlaying) {
+    jazzAudio.play().then(() => {
       isMusicPlaying = true;
-    }).catch(err => console.log('Autoplay blocked:', err));
+      musicBtn.textContent = '🎷 Jazz: ON';
+      musicBtn.style.borderColor = 'var(--gold)';
+    }).catch(err => console.log("Audio play error:", err));
+  } else {
+    jazzAudio.pause();
+    isMusicPlaying = false;
+    musicBtn.textContent = '🎷 Jazz: OFF';
+    musicBtn.style.borderColor = 'var(--border-color)';
   }
 });
 
-aiToggleEl.addEventListener('change', (e) => {
-  isVsAI = e.target.checked;
-  if (isVsAI) {
-    modeLabelEl.textContent = 'VS Bot';
-    blackLabelEl.textContent = 'BLACK (BOT)';
-    difficultySelect.style.display = 'inline-block';
-  } else {
-    modeLabelEl.textContent = 'Mode: 2 Players';
-    blackLabelEl.textContent = 'BLACK';
-    difficultySelect.style.display = 'none';
+// Creator Pop-up Events
+aboutCreatorBtn.addEventListener('click', () => creatorModal.classList.remove('hidden'));
+closeCreatorBtn.addEventListener('click', () => creatorModal.classList.add('hidden'));
+
+// YouTube Redirect + Reward Claim
+subAndClaimBtn.addEventListener('click', () => {
+  window.open('https://www.youtube.com/@Conpeyuta', '_blank');
+
+  if (!subRewardClaimed) {
+    userCoins += 10;
+    subRewardClaimed = true;
+    localStorage.setItem('blood_gold_coins', userCoins.toString());
+    localStorage.setItem('sub_reward_claimed', 'true');
+    coinCountEl.textContent = userCoins;
+    
+    subAndClaimBtn.textContent = '✓ Subscribed (+10 Coins Claimed)';
+    subAndClaimBtn.disabled = true;
+    subAndClaimBtn.style.opacity = '0.6';
   }
+});
+
+// Arena Menu Controls
+arenaPlayBtn.addEventListener('click', () => menuModal.classList.remove('hidden'));
+closeMenuBtn.addEventListener('click', () => menuModal.classList.add('hidden'));
+
+// Mode Selectors
+modeLocalBtn.addEventListener('click', () => {
+  currentMode = 'local';
+  modeLocalBtn.classList.add('active-mode');
+  modeBotBtn.classList.remove('active-mode');
+  botSettings.classList.add('hidden');
+  bracketView.classList.add('hidden');
+  menuModal.classList.add('hidden');
   resetGame();
 });
 
-resetBtnEl.addEventListener('click', resetGame);
-modalRestartBtn.addEventListener('click', resetGame);
-modalCloseBtn.addEventListener('click', hideGameOverModal);
+modeBotBtn.addEventListener('click', () => {
+  currentMode = 'bot';
+  modeBotBtn.classList.add('active-mode');
+  modeLocalBtn.classList.remove('active-mode');
+  botSettings.classList.remove('hidden');
+  bracketView.classList.add('hidden');
+  menuModal.classList.add('hidden');
+  resetGame();
+});
 
-if (boardElement) {
+tournamentBtn.addEventListener('click', () => {
+  bracketView.classList.toggle('hidden');
+});
+
+startTourneyMatchBtn.addEventListener('click', () => {
+  currentMode = 'tournament';
+  menuModal.classList.add('hidden');
+  resetGame();
+});
+
+resetBtn.addEventListener('click', () => resetGame());
+flipBtn.addEventListener('click', () => cg.toggleOrientation());
+
+// Initialize Chessground
+function initBoard() {
   cg = Chessground(boardElement, {
     orientation: 'white',
     movable: {
@@ -432,47 +172,100 @@ if (boardElement) {
       color: 'white',
       dests: getLegalMoves(chess),
       events: {
-        after: (orig, dest) => {
-          const playedMove = chess.move({ from: orig, to: dest, promotion: 'q' });
-          playAudioEffect(playedMove.captured ? 'capture' : 'move');
-
-          if (!gameStarted) {
-            gameStarted = true;
-            startClock();
-          }
-
-          updateCapturedDisplay();
-          updateMoveLog();
-
-          const currentTurn = chess.turn();
-          const turnColor = currentTurn === 'w' ? 'white' : 'black';
-          switchActiveClock(currentTurn);
-
-          if (chess.isGameOver()) {
-            handleGameOver();
-            return;
-          }
-
-          const botColor = boardOrientation === 'white' ? 'b' : 'w';
-          if (isVsAI && currentTurn === botColor) {
-            cg.set({
-              turnColor: turnColor,
-              movable: { color: null },
-            });
-            makeAIMove();
-          } else {
-            cg.set({
-              turnColor: turnColor,
-              movable: {
-                color: turnColor,
-                dests: getLegalMoves(chess),
-              },
-            });
-          }
-        },
-      },
+        after: (orig, dest) => handleUserMove(orig, dest)
+      }
     },
   });
+}
+
+function handleUserMove(orig, dest) {
+  const move = chess.move({ from: orig, to: dest, promotion: 'q' });
+  if (!move) return;
+
+  updateBoardState();
+
+  if ((currentMode === 'bot' || currentMode === 'tournament') && !chess.isGameOver()) {
+    triggerStockfish();
+  }
+}
+
+// STOCKFISH ENGINE TRIGGER
+function triggerStockfish() {
+  if (!stockfish) return;
+
+  let skillLevel = 20;
+  let depth = 12;
+
+  if (currentMode === 'tournament') {
+    if (tourneyRound === 1) { skillLevel = 5; depth = 5; }
+    else if (tourneyRound === 2) { skillLevel = 12; depth = 8; }
+    else { skillLevel = 20; depth = 14; }
+  } else {
+    const lvl = parseInt(difficultySelect.value, 10);
+    if (lvl === 1) { skillLevel = 1; depth = 3; }
+    else if (lvl === 2) { skillLevel = 8; depth = 6; }
+    else { skillLevel = 20; depth = 12; }
+  }
+
+  stockfish.postMessage(`setoption name Skill Level value ${skillLevel}`);
+  stockfish.postMessage(`position fen ${chess.fen()}`);
+  stockfish.postMessage(`go depth ${depth}`);
+}
+
+function executeStockfishMove(moveString) {
+  const from = moveString.substring(0, 2);
+  const to = moveString.substring(2, 4);
+  const promotion = moveString.length > 4 ? moveString.charAt(4) : 'q';
+
+  chess.move({ from, to, promotion });
+  updateBoardState();
+
+  if (chess.isGameOver()) {
+    if (chess.isCheckmate() && chess.turn() === 'w') {
+      if (currentMode === 'tournament') {
+        if (tourneyRound < 3) {
+          tourneyRound++;
+          alert(`🏆 Round ${tourneyRound - 1} Victory! Heading to Round ${tourneyRound}!`);
+          m1Slot.textContent = `Round ${tourneyRound}: YOU vs Boss #${tourneyRound}`;
+        } else {
+          userCoins += 7;
+          localStorage.setItem('blood_gold_coins', userCoins.toString());
+          coinCountEl.textContent = userCoins;
+          alert('🔥 TOURNAMENT CHAMPION! You won 7 Blood Coins!');
+          tourneyRound = 1;
+          m1Slot.textContent = `Round 1: YOU vs Boss #1`;
+        }
+      }
+    }
+  }
+}
+
+function updateBoardState() {
+  cg.set({
+    fen: chess.fen(),
+    turnColor: chess.turn() === 'w' ? 'white' : 'black',
+    movable: {
+      color: (currentMode === 'local') 
+        ? (chess.turn() === 'w' ? 'white' : 'black') 
+        : 'white',
+      dests: getLegalMoves(chess)
+    }
+  });
+
+  const history = chess.history();
+  if (history.length > 0) {
+    const lastMove = history[history.length - 1];
+    const logItem = document.createElement('div');
+    logItem.textContent = `${history.length}. ${lastMove}`;
+    moveLogEl.appendChild(logItem);
+    moveLogEl.scrollTop = moveLogEl.scrollHeight;
+  }
+}
+
+function resetGame() {
+  chess.reset();
+  moveLogEl.innerHTML = '';
+  updateBoardState();
 }
 
 function getLegalMoves(chessGame) {
@@ -484,4 +277,5 @@ function getLegalMoves(chessGame) {
   return dests;
 }
 
-updateClockDisplay();
+// Start Game
+initBoard();
