@@ -42,27 +42,49 @@
       </div>
 
       <div class="controls-right">
+        <button id="flip-btn" class="gothic-btn small-btn" title="Flip Board">🔄 Flip</button>
         <button id="music-btn" class="gothic-btn small-btn">🎵 Music: OFF</button>
         <button id="reset-btn" class="gothic-btn small-btn">⚔️ Reset</button>
       </div>
     </div>
 
-    <main class="game-area">
-      <!-- Black Clock -->
-      <div class="clock-container black-clock" id="black-clock">
-        <span class="player-label" id="black-label">BLACK</span>
-        <span class="time-display" id="black-time">01:00</span>
-      </div>
+    <!-- Main Workspace -->
+    <div class="workspace">
+      <main class="game-area">
+        <!-- Black Clock & Captured Pieces -->
+        <div class="clock-container black-clock" id="black-clock">
+          <div class="player-info">
+            <span class="player-label" id="black-label">BLACK</span>
+            <div class="captured-box" id="black-captured">
+              <span class="pieces-list"></span>
+              <span class="score-diff"></span>
+            </div>
+          </div>
+          <span class="time-display" id="black-time">01:00</span>
+        </div>
 
-      <!-- Chessboard -->
-      <div id="board"></div>
+        <!-- Chessboard -->
+        <div id="board"></div>
 
-      <!-- White Clock -->
-      <div class="clock-container white-clock active" id="white-clock">
-        <span class="player-label">WHITE</span>
-        <span class="time-display" id="white-time">01:00</span>
-      </div>
-    </main>
+        <!-- White Clock & Captured Pieces -->
+        <div class="clock-container white-clock active" id="white-clock">
+          <div class="player-info">
+            <span class="player-label" id="white-label">WHITE</span>
+            <div class="captured-box" id="white-captured">
+              <span class="pieces-list"></span>
+              <span class="score-diff"></span>
+            </div>
+          </div>
+          <span class="time-display" id="white-time">01:00</span>
+        </div>
+      </main>
+
+      <!-- Move History Panel -->
+      <aside class="history-panel">
+        <h3 class="panel-title">📜 Move History</h3>
+        <div id="move-log" class="move-log"></div>
+      </aside>
+    </div>
 
     <!-- Signature & Footer -->
     <footer class="app-footer">
@@ -78,7 +100,19 @@
     </footer>
   </div>
 
-  <!-- Background Dark Jazz Music Player (Royalty Free) -->
+  <!-- Game Over Modal Popup -->
+  <div id="game-over-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h2 id="modal-title" class="modal-title">VICTORY</h2>
+      <p id="modal-reason" class="modal-reason">By Checkmate</p>
+      <div class="modal-buttons">
+        <button id="modal-restart-btn" class="gothic-btn">⚔️ Play Again</button>
+        <button id="modal-close-btn" class="gothic-btn secondary">👁️ Inspect Board</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Background Dark Jazz Music Player -->
   <audio id="bg-music" src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=noir-jazz-112100.mp3" loop></audio>
 
   <script type="module" src="./script.js"></script>
