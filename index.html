@@ -3,118 +3,194 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bullet Chess Tournament</title>
-
-  <!-- Gothic Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
-
-  <!-- Chessground Styles & Piece Spritesheet -->
+  <title>GOTHIC BULLET</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@8.0.0/assets/chessground.base.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@8.0.0/assets/chessground.cburnett.css">
-  
-  <!-- Custom Gothic Style -->
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div class="overlay"></div>
+  <!-- Dark Jazz Audio Stream -->
+  <audio id="jazz-music" loop src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=gothic-dark-ambient-111658.mp3"></audio>
 
   <div class="app-container">
+    
+    <!-- HEADER -->
     <header class="app-header">
-      <h1 class="bloody-title">Bullet Chess Tournament</h1>
+      <div class="header-left">
+        <h1 class="logo">GOTHIC BULLET</h1>
+      </div>
+      
+      <div class="header-right">
+        <!-- Compact Gold Coin Display -->
+        <div class="coin-display" title="Blood Coins">
+          <div class="gold-coin">
+            <svg class="blood-drop drop-small" viewBox="0 0 30 42">
+              <path d="M15 0 C15 0 0 20 0 28 C0 35.7 6.7 42 15 42 C23.3 42 30 35.7 30 28 C30 20 15 0 15 0 Z" fill="#cc0000"/>
+            </svg>
+            <svg class="blood-drop drop-medium" viewBox="0 0 30 42">
+              <path d="M15 0 C15 0 0 20 0 28 C0 35.7 6.7 42 15 42 C23.3 42 30 35.7 30 28 C30 20 15 0 15 0 Z" fill="#ff1a1a"/>
+            </svg>
+            <svg class="blood-drop drop-large" viewBox="0 0 30 42">
+              <path d="M15 0 C15 0 0 20 0 28 C0 35.7 6.7 42 15 42 C23.3 42 30 35.7 30 28 C30 20 15 0 15 0 Z" fill="#990000"/>
+            </svg>
+          </div>
+          <span id="coin-count" class="coin-count">0</span>
+        </div>
+      </div>
     </header>
 
-    <!-- Controls & Game Mode Toggle -->
-    <div class="controls-panel">
-      <div class="controls-left">
-        <label class="toggle-container">
-          <input type="checkbox" id="ai-toggle">
-          <span class="toggle-slider"></span>
-          <span class="toggle-label" id="mode-label">Mode: 2 Players</span>
-        </label>
+    <main class="game-layout">
+      
+      <!-- LEFT PANEL -->
+      <aside class="left-panel">
+        <!-- Small Creator Badge directly above Play Button -->
+        <button id="about-creator-btn" class="creator-badge-btn side-creator-btn" title="About the Developer">
+          👤 CREATOR: MOHAMED BOUDILI
+        </button>
 
-        <!-- Difficulty Selector -->
-        <select id="difficulty-select" class="gothic-select" style="display: none;">
-          <option value="1">Easy</option>
-          <option value="2" selected>Medium</option>
-          <option value="3">Hard</option>
-        </select>
-      </div>
+        <!-- Compact Play Button -->
+        <button id="arena-play-btn" class="play-trigger-btn">
+          <span class="play-icon">▶</span> PLAY / ARENA
+        </button>
 
-      <div class="controls-right">
-        <button id="flip-btn" class="gothic-btn small-btn" title="Flip Board">🔄 Flip</button>
-        <button id="music-btn" class="gothic-btn small-btn">🎵 Music: OFF</button>
-        <button id="reset-btn" class="gothic-btn small-btn">⚔️ Reset</button>
-      </div>
-    </div>
-
-    <!-- Main Workspace -->
-    <div class="workspace">
-      <main class="game-area">
-        <!-- Black Clock & Captured Pieces -->
-        <div class="clock-container black-clock" id="black-clock">
-          <div class="player-info">
-            <span class="player-label" id="black-label">BLACK</span>
-            <div class="captured-box" id="black-captured">
-              <span class="pieces-list"></span>
-              <span class="score-diff"></span>
-            </div>
+        <div class="panel-box">
+          <h3>Captured</h3>
+          <div id="white-captured" class="captured-box">
+            <span class="player-tag">White:</span>
+            <div class="pieces-list"></div>
+            <div class="score-diff"></div>
           </div>
-          <span class="time-display" id="black-time">01:00</span>
+          <div id="black-captured" class="captured-box">
+            <span class="player-tag">Black:</span>
+            <div class="pieces-list"></div>
+            <div class="score-diff"></div>
+          </div>
         </div>
 
-        <!-- Chessboard -->
-        <div id="board"></div>
-
-        <!-- White Clock & Captured Pieces -->
-        <div class="clock-container white-clock active" id="white-clock">
-          <div class="player-info">
-            <span class="player-label" id="white-label">WHITE</span>
-            <div class="captured-box" id="white-captured">
-              <span class="pieces-list"></span>
-              <span class="score-diff"></span>
-            </div>
-          </div>
-          <span class="time-display" id="white-time">01:00</span>
+        <div class="panel-box flex-grow">
+          <h3>Move Log</h3>
+          <div id="move-log" class="move-log"></div>
         </div>
-      </main>
-
-      <!-- Move History Panel -->
-      <aside class="history-panel">
-        <h3 class="panel-title">📜 Move History</h3>
-        <div id="move-log" class="move-log"></div>
       </aside>
-    </div>
 
-    <!-- Signature & Footer -->
+      <!-- CENTER CHESS AREA -->
+      <section class="board-container">
+        <div id="black-clock" class="clock-card">
+          <span id="black-label" class="player-name">BLACK</span>
+          <div class="time-display" id="black-time">01:00</div>
+        </div>
+
+        <!-- Custom Board Wrapper with Embedded Watermark -->
+        <div class="board-wrapper">
+          <div id="board" class="cg-wrap gothic-board"></div>
+          <div class="board-watermark">GOTHIC BULLET • MOHAMED BOUDILI</div>
+        </div>
+
+        <div id="white-clock" class="clock-card active">
+          <span id="white-label" class="player-name">WHITE (YOU)</span>
+          <div class="time-display" id="white-time">01:00</div>
+        </div>
+
+        <div class="quick-controls">
+          <button id="reset-btn">🔄 Reset</button>
+          <button id="flip-btn">🔄 Flip Board</button>
+          <button id="music-btn">🎷 Jazz: OFF</button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER -->
     <footer class="app-footer">
-      <p class="signature">Created by <span>Mohamed Boudili</span></p>
-      <div class="social-links">
-        <a href="https://youtube.com/@Conpeyuta" target="_blank" class="gothic-btn youtube">
-          <span class="btn-icon">⚔️</span> YouTube
-        </a>
-        <a href="mailto:Conpeyuta@gmail.com" class="gothic-btn contact">
-          <span class="btn-icon">📜</span> Contact
-        </a>
-      </div>
+      <a href="https://www.youtube.com/@Conpeyuta" target="_blank" class="yt-badge" title="Visit Conpeyuta on YouTube">
+        <svg class="yt-svg-logo" viewBox="0 0 24 24">
+          <path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/>
+          <path fill="#FFFFFF" d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+        </svg>
+        <span class="yt-text">YouTube: <strong>Conpeyuta</strong></span>
+      </a>
     </footer>
+
   </div>
 
-  <!-- Game Over Modal Popup -->
-  <div id="game-over-modal" class="modal-overlay hidden">
-    <div class="modal-box">
-      <h2 id="modal-title" class="modal-title">VICTORY</h2>
-      <p id="modal-reason" class="modal-reason">By Checkmate</p>
-      <div class="modal-buttons">
-        <button id="modal-restart-btn" class="gothic-btn">⚔️ Play Again</button>
-        <button id="modal-close-btn" class="gothic-btn secondary">👁️ Inspect Board</button>
+  <!-- DEVELOPER / CREATOR MODAL -->
+  <div id="creator-modal" class="modal-overlay hidden">
+    <div class="modal-content gothic-menu creator-card">
+      <div class="modal-header">
+        <h2>🛡️ ARCHITECT PROFILE</h2>
+        <button id="close-creator-btn" class="close-btn">✖</button>
+      </div>
+
+      <div class="creator-profile-body">
+        <div class="creator-avatar">MB</div>
+        <h3>Mohamed Boudili</h3>
+        <p class="creator-title">Creator & Lead Developer</p>
+        
+        <p class="creator-bio">
+          Gothic Bullet is a custom-engineered chess experience designed with dark ambient aesthetic, real-time clock triggers, and custom tournament logic.
+        </p>
+
+        <div class="yt-promo-box">
+          <p class="reward-notice">🎁 Subscribe on YouTube to unlock <strong>10 Free Blood Coins</strong>!</p>
+          
+          <button id="sub-and-claim-btn" class="glow-btn danger full-width margin-top">
+            <svg class="yt-svg-logo inline-icon" viewBox="0 0 24 24"><path fill="#FFFFFF" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/><path fill="#8b0000" d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            Subscribe & Claim +10 Coins
+          </button>
+        </div>
+
+        <div class="copyright-stamp">
+          GOTHIC BULLET v1.0 • © 2026 Mohamed Boudili
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Background Dark Jazz Music Player -->
-  <audio id="bg-music" src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=noir-jazz-112100.mp3" loop></audio>
+  <!-- ARENA / MATCH MODES MENU -->
+  <div id="menu-modal" class="modal-overlay hidden">
+    <div class="modal-content gothic-menu">
+      <div class="modal-header">
+        <h2>⚔️ ARENA HUB</h2>
+        <button id="close-menu-btn" class="close-btn">✖</button>
+      </div>
 
-  <script type="module" src="./script.js"></script>
+      <!-- Quick Match Options -->
+      <div class="menu-section">
+        <h3>Quick Match Modes</h3>
+        
+        <div class="mode-option">
+          <button id="mode-local-btn" class="glow-btn full-width active-mode">👥 Pass & Play (Local 2P)</button>
+        </div>
+
+        <div class="mode-option margin-top">
+          <button id="mode-bot-btn" class="glow-btn full-width">🤖 Play Against AI Bot</button>
+          <div id="bot-settings" class="bot-settings-panel hidden">
+            <label for="difficulty-select">Bot Level:</label>
+            <select id="difficulty-select" class="styled-select">
+              <option value="1">Easy Bot</option>
+              <option value="2" selected>Medium Bot</option>
+              <option value="3">Hard Bot (Stockfish)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tournament Arena Option -->
+      <div class="menu-section">
+        <h3>⚔️ Tournament Arena</h3>
+        <p class="menu-desc">Defeat 3 Bosses in a row to claim 7 Blood Coins!</p>
+        <button id="tournament-btn" class="glow-btn danger full-width">Enter Tournament</button>
+        
+        <div id="bracket-view" class="bracket-container hidden margin-top">
+          <div class="match-slot" id="m1">Round 1: YOU vs Boss #1</div>
+          <button id="start-tourney-match-btn" class="glow-btn danger full-width margin-top">Start Match</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="script.js"></script>
 </body>
 </html>
