@@ -12,6 +12,45 @@ const modeLabelEl = document.getElementById('mode-label');
 const difficultySelect = document.getElementById('difficulty-select');
 const resetBtnEl = document.getElementById('reset-btn');
 
+// Music & Sound Elements
+const bgMusicEl = document.getElementById('bg-music');
+const musicBtnEl = document.getElementById('music-btn');
+let isMusicPlaying = false;
+
+// Synthesizer Audio Context for Move & Capture Sounds
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playAudioEffect(type) {
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  const now = audioCtx.currentTime;
+
+  if (type === 'capture') {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+    osc.start(now);
+    osc.stop(now + 0.08);
+  } else {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(450, now);
+    osc.frequency.exponentialRampToValueAtTime(150, now + 0.05);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+    osc.start(now);
+    osc.stop(now + 0.05);
+  }
+}
+
 let chess = new Chess();
 let cg = null;
 
@@ -22,10 +61,8 @@ let blackSeconds = 60;
 let timerInterval = null;
 let gameStarted = false;
 
-// Basic Piece Values
+// Piece Values & Positional Tables
 const weights = { p: 10, n: 30, b: 35, r: 50, q: 90, k: 1000 };
-
-// Pawn Positional Preference Table (Encourages controlling center)
 const pawnPst = [
   [0,  0,  0,  0,  0,  0,  0,  0],
   [50, 50, 50, 50, 50, 50, 50, 50],
@@ -120,30 +157,25 @@ function resetGame() {
   });
 }
 
-// Position Evaluator
 function evaluateBoard(board) {
   let totalEvaluation = 0;
-
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
       const piece = board[r][c];
       if (piece) {
         let val = weights[piece.type] || 0;
         if (piece.type === 'p') val += pawnPst[r][c];
-
         if (piece.color === 'w') {
-          totalEvaluation -= val; // Minimizing for Black
+          totalEvaluation -= val;
         } else {
-          totalEvaluation += val; // Maximizing for Black
+          totalEvaluation += val;
         }
       }
     }
   }
-
   return totalEvaluation;
 }
 
-// Minimax with Alpha-Beta Pruning
 function minimax(game, depth, alpha, beta, isMaximizing) {
   if (depth === 0 || game.isGameOver()) {
     return evaluateBoard(game.board());
@@ -159,7 +191,7 @@ function minimax(game, depth, alpha, beta, isMaximizing) {
       game.undo();
       maxEval = Math.max(maxEval, evalVal);
       alpha = Math.max(alpha, evalVal);
-      if (beta <= alpha) break; // Prune
+      if (beta <= alpha) break;
     }
     return maxEval;
   } else {
@@ -170,13 +202,12 @@ function minimax(game, depth, alpha, beta, isMaximizing) {
       game.undo();
       minEval = Math.min(minEval, evalVal);
       beta = Math.min(beta, evalVal);
-      if (beta <= alpha) break; // Prune
+      if (beta <= alpha) break;
     }
     return minEval;
   }
 }
 
-// Trigger Smart AI Move
 function makeAIMove() {
   if (chess.isGameOver() || chess.turn() !== 'b' || !isVsAI) return;
 
@@ -187,7 +218,6 @@ function makeAIMove() {
   let bestMove = null;
   let bestValue = -Infinity;
 
-  // Move ordering: evaluate capturing moves first to speed up minimax
   moves.sort((a, b) => (b.captured ? 1 : 0) - (a.captured ? 1 : 0));
 
   for (const move of moves) {
@@ -203,10 +233,11 @@ function makeAIMove() {
 
   const chosenMove = bestMove || moves[0];
 
-  // Natural bullet response delay
   setTimeout(() => {
     if (!isVsAI || chess.turn() !== 'b') return;
-    chess.move(chosenMove);
+    
+    const playedMove = chess.move(chosenMove);
+    playAudioEffect(playedMove.captured ? 'capture' : 'move');
 
     const nextTurn = chess.turn() === 'w' ? 'white' : 'black';
 
@@ -225,6 +256,21 @@ function makeAIMove() {
 }
 
 // Event Listeners
+musicBtnEl.addEventListener('click', () => {
+  if (isMusicPlaying) {
+    bgMusicEl.pause();
+    musicBtnEl.textContent = '🎵 Music: OFF';
+    isMusicPlaying = false;
+  } else {
+    bgMusicEl.play().then(() => {
+      musicBtnEl.textContent = '🎶 Music: ON';
+      isMusicPlaying = true;
+    }).catch(err => {
+      console.log('Autoplay blocked:', err);
+    });
+  }
+});
+
 aiToggleEl.addEventListener('change', (e) => {
   isVsAI = e.target.checked;
   if (isVsAI) {
@@ -249,7 +295,8 @@ if (boardElement) {
       dests: getLegalMoves(chess),
       events: {
         after: (orig, dest) => {
-          chess.move({ from: orig, to: dest, promotion: 'q' });
+          const playedMove = chess.move({ from: orig, to: dest, promotion: 'q' });
+          playAudioEffect(playedMove.captured ? 'capture' : 'move');
 
           if (!gameStarted) {
             gameStarted = true;
