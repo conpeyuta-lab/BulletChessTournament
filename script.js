@@ -56,6 +56,7 @@ let whiteTime = 60;
 let blackTime = 60;
 let clockTimer = null;
 let gameStarted = false;
+let gameOver = false;
 
 coinCountEl.textContent = userCoins;
 
@@ -191,6 +192,8 @@ function initBoard() {
 }
 
 function handleUserMove(orig, dest) {
+  if (gameOver) return;
+
   const move = chess.move({ from: orig, to: dest, promotion: 'q' });
   if (!move) return;
 
@@ -201,6 +204,8 @@ function handleUserMove(orig, dest) {
 
   updateBoardState();
 
+  if (checkGameOverState()) return;
+
   if ((currentMode === 'bot' || currentMode === 'tournament') && !chess.isGameOver()) {
     triggerStockfish();
   }
@@ -208,7 +213,7 @@ function handleUserMove(orig, dest) {
 
 // STOCKFISH ENGINE TRIGGER
 function triggerStockfish() {
-  if (!stockfish) return;
+  if (!stockfish || gameOver) return;
 
   let skillLevel = 20;
   let depth = 12;
@@ -230,6 +235,8 @@ function triggerStockfish() {
 }
 
 function executeStockfishMove(moveString) {
+  if (gameOver) return;
+
   const from = moveString.substring(0, 2);
   const to = moveString.substring(2, 4);
   const promotion = moveString.length > 4 ? moveString.charAt(4) : 'q';
@@ -237,32 +244,60 @@ function executeStockfishMove(moveString) {
   chess.move({ from, to, promotion });
   updateBoardState();
 
+  checkGameOverState();
+}
+
+// CHECK GAME OVER CONDITIONS & NOTIFICATIONS
+function checkGameOverState() {
+  if (gameOver) return true;
+
   if (chess.isGameOver()) {
     stopClock();
-    if (chess.isCheckmate() && chess.turn() === 'w') {
-      if (currentMode === 'tournament') {
-        if (tourneyRound < 3) {
-          tourneyRound++;
-          alert(`🏆 Round ${tourneyRound - 1} Victory! Heading to Round ${tourneyRound}!`);
-          m1Slot.textContent = `Round ${tourneyRound}: YOU vs Boss #${tourneyRound}`;
+    gameOver = true;
+
+    if (chess.isCheckmate()) {
+      const winner = chess.turn() === 'w' ? 'Black' : 'White';
+      if (currentMode === 'local') {
+        alert(`⚔️ CHECKMATE! ${winner} wins the match!`);
+      } else {
+        // Against Bot or Tournament
+        if (winner === 'White') {
+          if (currentMode === 'tournament') {
+            if (tourneyRound < 3) {
+              tourneyRound++;
+              alert(`🏆 Round ${tourneyRound - 1} Victory! Heading to Round ${tourneyRound}!`);
+              m1Slot.textContent = `Round ${tourneyRound}: YOU vs Boss #${tourneyRound}`;
+              gameOver = false;
+              resetGame();
+              return true;
+            } else {
+              userCoins += 7;
+              localStorage.setItem('blood_gold_coins', userCoins.toString());
+              coinCountEl.textContent = userCoins;
+              alert('🔥 TOURNAMENT CHAMPION! You conquered all 3 bosses and won 7 Blood Coins!');
+              tourneyRound = 1;
+              m1Slot.textContent = `Round 1: YOU vs Boss #1`;
+            }
+          } else {
+            alert('🎉 VICTORY! You defeated the Gothic Bot!');
+          }
         } else {
-          userCoins += 7;
-          localStorage.setItem('blood_gold_coins', userCoins.toString());
-          coinCountEl.textContent = userCoins;
-          alert('🔥 TOURNAMENT CHAMPION! You won 7 Blood Coins!');
-          tourneyRound = 1;
-          m1Slot.textContent = `Round 1: YOU vs Boss #1`;
+          alert('💀 DEFEAT! You were crushed by the bot.');
         }
       }
+    } else if (chess.isDraw()) {
+      alert('🤝 GAME OVER: Draw!');
     }
+    return true;
   }
+  return false;
 }
 
 // REAL-TIME CLOCK LOGIC
 function startClock() {
   stopClock();
   clockTimer = setInterval(() => {
-    if (chess.isGameOver()) {
+    if (gameOver || chess.isGameOver()) {
       stopClock();
       return;
     }
@@ -272,14 +307,28 @@ function startClock() {
       if (whiteTime <= 0) {
         whiteTime = 0;
         stopClock();
-        alert('⏱️ White time expired! Black wins on time.');
+        gameOver = true;
+        updateClockDisplay();
+        if (currentMode === 'local') {
+          alert('⏱️ Time expired! Black wins on time.');
+        } else {
+          alert('⏱️ DEFEAT! Your time expired.');
+        }
+        return;
       }
     } else {
       blackTime--;
       if (blackTime <= 0) {
         blackTime = 0;
         stopClock();
-        alert('⏱️ Black time expired! White wins on time.');
+        gameOver = true;
+        updateClockDisplay();
+        if (currentMode === 'local') {
+          alert('⏱️ Time expired! White wins on time.');
+        } else {
+          alert('🎉 VICTORY! Opponent ran out of time.');
+        }
+        return;
       }
     }
     updateClockDisplay();
@@ -317,10 +366,10 @@ function updateBoardState() {
     fen: chess.fen(),
     turnColor: chess.turn() === 'w' ? 'white' : 'black',
     movable: {
-      color: (currentMode === 'local') 
+      color: gameOver ? null : ((currentMode === 'local') 
         ? (chess.turn() === 'w' ? 'white' : 'black') 
-        : 'white',
-      dests: getLegalMoves(chess)
+        : 'white'),
+      dests: gameOver ? new Map() : getLegalMoves(chess)
     }
   });
 
@@ -342,6 +391,7 @@ function resetGame() {
   whiteTime = 60;
   blackTime = 60;
   gameStarted = false;
+  gameOver = false;
   moveLogEl.innerHTML = '';
   updateClockDisplay();
   updateBoardState();
