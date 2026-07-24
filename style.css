@@ -22,6 +22,44 @@ body {
   align-items: center;
 }
 
+/* Gothic In-App Notification Overlay */
+#gothic-notification {
+  position: fixed;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  background: linear-gradient(135deg, #120202, #240505);
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 25px rgba(255, 26, 26, 0.4), inset 0 0 15px rgba(0, 0, 0, 0.8);
+  color: #f1f1f1;
+  font-family: var(--font-family);
+  padding: 15px 30px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  transition: top 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+}
+
+#gothic-notification.show {
+  top: 30px;
+}
+
+#gothic-notification.victory {
+  border-color: #d4af37;
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.5);
+  color: #fce883;
+}
+
+#gothic-notification.defeat {
+  border-color: #ff1a1a;
+  box-shadow: 0 0 25px rgba(255, 26, 26, 0.6);
+  color: #ff6b6b;
+}
+
 .app-container {
   width: 100%;
   max-width: 900px;
