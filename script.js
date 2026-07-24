@@ -17,6 +17,12 @@ const moveLogEl = document.getElementById('move-log');
 const resetBtn = document.getElementById('reset-btn');
 const flipBtn = document.getElementById('flip-btn');
 
+// Clock Elements
+const whiteClockEl = document.getElementById('white-clock');
+const blackClockEl = document.getElementById('black-clock');
+const whiteTimeEl = document.getElementById('white-time');
+const blackTimeEl = document.getElementById('black-time');
+
 // Creator Modal Elements
 const aboutCreatorBtn = document.getElementById('about-creator-btn');
 const creatorModal = document.getElementById('creator-modal');
@@ -45,6 +51,12 @@ let userCoins = parseInt(localStorage.getItem('blood_gold_coins') || '0', 10);
 let subRewardClaimed = localStorage.getItem('sub_reward_claimed') === 'true';
 let isMusicPlaying = false;
 
+// Clock Variables (1 minute = 60 seconds)
+let whiteTime = 60;
+let blackTime = 60;
+let clockTimer = null;
+let gameStarted = false;
+
 coinCountEl.textContent = userCoins;
 
 if (subRewardClaimed) {
@@ -56,7 +68,7 @@ if (subRewardClaimed) {
 let chess = new Chess();
 let cg = null;
 
-// CORS-SAFE STOCKFISH WORKER INITIALIZATION (JSFiddle/Web Compatible)
+// CORS-SAFE STOCKFISH WORKER INITIALIZATION
 let stockfish = null;
 
 async function initStockfishEngine() {
@@ -108,13 +120,13 @@ musicBtn.addEventListener('click', () => {
 aboutCreatorBtn.addEventListener('click', () => creatorModal.classList.remove('hidden'));
 closeCreatorBtn.addEventListener('click', () => creatorModal.classList.add('hidden'));
 
-// YouTube Redirect + Reward Claim
+// YouTube Redirect + Reward Claim Fix
 subAndClaimBtn.addEventListener('click', () => {
   window.open('https://www.youtube.com/@Conpeyuta', '_blank');
 
   if (!subRewardClaimed) {
-    userCoins += 10;
     subRewardClaimed = true;
+    userCoins += 10;
     localStorage.setItem('blood_gold_coins', userCoins.toString());
     localStorage.setItem('sub_reward_claimed', 'true');
     coinCountEl.textContent = userCoins;
@@ -182,6 +194,11 @@ function handleUserMove(orig, dest) {
   const move = chess.move({ from: orig, to: dest, promotion: 'q' });
   if (!move) return;
 
+  if (!gameStarted) {
+    gameStarted = true;
+    startClock();
+  }
+
   updateBoardState();
 
   if ((currentMode === 'bot' || currentMode === 'tournament') && !chess.isGameOver()) {
@@ -221,6 +238,7 @@ function executeStockfishMove(moveString) {
   updateBoardState();
 
   if (chess.isGameOver()) {
+    stopClock();
     if (chess.isCheckmate() && chess.turn() === 'w') {
       if (currentMode === 'tournament') {
         if (tourneyRound < 3) {
@@ -240,6 +258,60 @@ function executeStockfishMove(moveString) {
   }
 }
 
+// REAL-TIME CLOCK LOGIC
+function startClock() {
+  stopClock();
+  clockTimer = setInterval(() => {
+    if (chess.isGameOver()) {
+      stopClock();
+      return;
+    }
+
+    if (chess.turn() === 'w') {
+      whiteTime--;
+      if (whiteTime <= 0) {
+        whiteTime = 0;
+        stopClock();
+        alert('⏱️ White time expired! Black wins on time.');
+      }
+    } else {
+      blackTime--;
+      if (blackTime <= 0) {
+        blackTime = 0;
+        stopClock();
+        alert('⏱️ Black time expired! White wins on time.');
+      }
+    }
+    updateClockDisplay();
+  }, 1000);
+}
+
+function stopClock() {
+  if (clockTimer) {
+    clearInterval(clockTimer);
+    clockTimer = null;
+  }
+}
+
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function updateClockDisplay() {
+  whiteTimeEl.textContent = formatTime(whiteTime);
+  blackTimeEl.textContent = formatTime(blackTime);
+
+  if (chess.turn() === 'w') {
+    whiteClockEl.classList.add('active');
+    blackClockEl.classList.remove('active');
+  } else {
+    blackClockEl.classList.add('active');
+    whiteClockEl.classList.remove('active');
+  }
+}
+
 function updateBoardState() {
   cg.set({
     fen: chess.fen(),
@@ -252,6 +324,8 @@ function updateBoardState() {
     }
   });
 
+  updateClockDisplay();
+
   const history = chess.history();
   if (history.length > 0) {
     const lastMove = history[history.length - 1];
@@ -263,8 +337,13 @@ function updateBoardState() {
 }
 
 function resetGame() {
+  stopClock();
   chess.reset();
+  whiteTime = 60;
+  blackTime = 60;
+  gameStarted = false;
   moveLogEl.innerHTML = '';
+  updateClockDisplay();
   updateBoardState();
 }
 
@@ -279,3 +358,4 @@ function getLegalMoves(chessGame) {
 
 // Start Game
 initBoard();
+updateClockDisplay();
