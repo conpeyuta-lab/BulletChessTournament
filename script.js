@@ -16,6 +16,7 @@ const jazzAudio = document.getElementById('jazz-music');
 const moveLogEl = document.getElementById('move-log');
 const resetBtn = document.getElementById('reset-btn');
 const flipBtn = document.getElementById('flip-btn');
+const gothicNotifEl = document.getElementById('gothic-notification');
 
 // Clock Elements
 const whiteClockEl = document.getElementById('white-clock');
@@ -68,6 +69,22 @@ if (subRewardClaimed) {
 
 let chess = new Chess();
 let cg = null;
+
+// GOTHIC ANIMATED BANNER NOTIFICATION SYSTEM
+let notifTimeout = null;
+function showGothicNotification(message, type = 'victory', duration = 4000) {
+  if (!gothicNotifEl) return;
+  
+  clearTimeout(notifTimeout);
+  gothicNotifEl.textContent = message;
+  gothicNotifEl.className = ''; 
+  gothicNotifEl.classList.add(type);
+  gothicNotifEl.classList.add('show');
+
+  notifTimeout = setTimeout(() => {
+    gothicNotifEl.classList.remove('show');
+  }, duration);
+}
 
 // CORS-SAFE STOCKFISH WORKER INITIALIZATION
 let stockfish = null;
@@ -135,6 +152,7 @@ subAndClaimBtn.addEventListener('click', () => {
     subAndClaimBtn.textContent = '✓ Subscribed (+10 Coins Claimed)';
     subAndClaimBtn.disabled = true;
     subAndClaimBtn.style.opacity = '0.6';
+    showGothicNotification('🩸 +10 Blood Gold Coins Claimed!', 'victory', 3000);
   }
 });
 
@@ -247,7 +265,7 @@ function executeStockfishMove(moveString) {
   checkGameOverState();
 }
 
-// CHECK GAME OVER CONDITIONS & NOTIFICATIONS
+// CHECK GAME OVER CONDITIONS & GOTHIC NOTIFICATIONS
 function checkGameOverState() {
   if (gameOver) return true;
 
@@ -258,35 +276,36 @@ function checkGameOverState() {
     if (chess.isCheckmate()) {
       const winner = chess.turn() === 'w' ? 'Black' : 'White';
       if (currentMode === 'local') {
-        alert(`⚔️ CHECKMATE! ${winner} wins the match!`);
+        showGothicNotification(`⚔️ CHECKMATE! ${winner} wins the match!`, 'victory');
       } else {
-        // Against Bot or Tournament
         if (winner === 'White') {
           if (currentMode === 'tournament') {
             if (tourneyRound < 3) {
               tourneyRound++;
-              alert(`🏆 Round ${tourneyRound - 1} Victory! Heading to Round ${tourneyRound}!`);
+              showGothicNotification(`🏆 Round ${tourneyRound - 1} Cleared! Entering Round ${tourneyRound}!`, 'victory');
               m1Slot.textContent = `Round ${tourneyRound}: YOU vs Boss #${tourneyRound}`;
-              gameOver = false;
-              resetGame();
+              setTimeout(() => {
+                gameOver = false;
+                resetGame();
+              }, 2500);
               return true;
             } else {
               userCoins += 7;
               localStorage.setItem('blood_gold_coins', userCoins.toString());
               coinCountEl.textContent = userCoins;
-              alert('🔥 TOURNAMENT CHAMPION! You conquered all 3 bosses and won 7 Blood Coins!');
+              showGothicNotification('🔥 TOURNAMENT CHAMPION! +7 Blood Coins Won!', 'victory', 6000);
               tourneyRound = 1;
               m1Slot.textContent = `Round 1: YOU vs Boss #1`;
             }
           } else {
-            alert('🎉 VICTORY! You defeated the Gothic Bot!');
+            showGothicNotification('🎉 VICTORY! You defeated the Gothic Bot!', 'victory');
           }
         } else {
-          alert('💀 DEFEAT! You were crushed by the bot.');
+          showGothicNotification('💀 DEFEAT! You were crushed by the bot.', 'defeat');
         }
       }
     } else if (chess.isDraw()) {
-      alert('🤝 GAME OVER: Draw!');
+      showGothicNotification('🤝 GAME OVER: Draw by Stalemate or Repetition!', 'defeat');
     }
     return true;
   }
@@ -310,9 +329,9 @@ function startClock() {
         gameOver = true;
         updateClockDisplay();
         if (currentMode === 'local') {
-          alert('⏱️ Time expired! Black wins on time.');
+          showGothicNotification('⏱️ Time Expired! Black wins on time.', 'defeat');
         } else {
-          alert('⏱️ DEFEAT! Your time expired.');
+          showGothicNotification('⏱️ DEFEAT! Your time has expired.', 'defeat');
         }
         return;
       }
@@ -324,9 +343,9 @@ function startClock() {
         gameOver = true;
         updateClockDisplay();
         if (currentMode === 'local') {
-          alert('⏱️ Time expired! White wins on time.');
+          showGothicNotification('⏱️ Time Expired! White wins on time.', 'victory');
         } else {
-          alert('🎉 VICTORY! Opponent ran out of time.');
+          showGothicNotification('🎉 VICTORY! Opponent ran out of time.', 'victory');
         }
         return;
       }
